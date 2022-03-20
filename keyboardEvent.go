@@ -67,12 +67,12 @@ func upKey(key uint16) error {
 func (k *KeyboardEvent) Launching() error {
 	if key, ok := javaScriptToUint16[k.JavaScriptCode]; ok {
 		if k.Ctrl {
-			CtrlPress()
-			defer CtrlRelease()
+			downKey(ctrl)
+			defer upKey(ctrl)
 		}
 		if k.Shift {
-			ShiftPress()
-			defer ShiftRelease()
+			downKey(shift)
+			defer upKey(shift)
 		}
 		err := downKey(key)
 		if err != nil {
@@ -88,10 +88,10 @@ func (k *KeyboardEvent) Launching() error {
 	return errors.New("not in map")
 }
 
-func ShiftPress()   { _ = downKey(shift) }
-func ShiftRelease() { _ = upKey(shift) }
-func CtrlPress()    { _ = downKey(ctrl) }
-func CtrlRelease()  { _ = upKey(ctrl) }
+func (ki *keyboardInput) ShiftPress()   { _ = downKey(shift) }
+func (ki *keyboardInput) ShiftRelease() { _ = upKey(shift) }
+func (ki *keyboardInput) CtrlPress()    { _ = downKey(ctrl) }
+func (ki *keyboardInput) CtrlRelease()  { _ = upKey(ctrl) }
 
 const (
 	shift = 0x10
