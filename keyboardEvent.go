@@ -6,16 +6,11 @@ import (
 	"unsafe"
 )
 
-const (
-	shift = 0x10
-	ctrl  = 0x11
-	keyUp = 0x0002
-)
-
-//KeyboardEvent is type for simple use keyboard events.
+//KeyboardEvent is type for simple use keyboard events. Use method Launching
 type KeyboardEvent struct {
-	Ctrl  bool
-	Shift bool
+	Ctrl           bool
+	Shift          bool
+	JavaScriptCode string
 }
 
 //KeyboardInput is winApi struct for SendInput. Use NewKeyboardInput to create it.
@@ -33,15 +28,6 @@ type keyboardInput struct {
 	padding   uint64
 }
 
-func (ki *keyboardInput) sendInput() (int, error) {
-	ret, _, err := sendInputProc.Call(
-		uintptr(1),
-		uintptr(unsafe.Pointer(ki)),
-		unsafe.Sizeof(*ki),
-	)
-	return int(ret), err
-}
-
 //NewKeyboardInput create winApi struct for SendInput
 func NewKeyboardInput(k KeyboardInput) *keyboardInput {
 	var ki keyboardInput
@@ -50,44 +36,13 @@ func NewKeyboardInput(k KeyboardInput) *keyboardInput {
 	return &ki
 }
 
-func shiftPress() {
-	downKey(shift)
-}
-
-func shiftRelease() {
-	upKey(shift)
-}
-
-func ctrlPress() {
-	downKey(ctrl)
-}
-
-func ctrlRelease() {
-	upKey(ctrl)
-}
-
-func (k *KeyboardEvent) Launching(javaScriptCode string) error {
-	if key, ok := javaScriptToUint16[javaScriptCode]; ok {
-		if k.Ctrl {
-			ctrlPress()
-			defer ctrlRelease()
-		}
-		if k.Shift {
-			shiftPress()
-			defer shiftRelease()
-		}
-		err := downKey(key)
-		if err != nil {
-			return err
-		}
-		time.Sleep(time.Millisecond)
-		err = upKey(key)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	return errors.New("not in map")
+func (ki *keyboardInput) sendInput() (int, error) {
+	ret, _, err := sendInputProc.Call(
+		uintptr(1),
+		uintptr(unsafe.Pointer(ki)),
+		unsafe.Sizeof(*ki),
+	)
+	return int(ret), err
 }
 
 func downKey(key uint16) error {
@@ -107,6 +62,42 @@ func upKey(key uint16) error {
 	}
 	return nil
 }
+
+//Launching use for KeyboardEvent struct
+func (k *KeyboardEvent) Launching() error {
+	if key, ok := javaScriptToUint16[k.JavaScriptCode]; ok {
+		if k.Ctrl {
+			CtrlPress()
+			defer CtrlRelease()
+		}
+		if k.Shift {
+			ShiftPress()
+			defer ShiftRelease()
+		}
+		err := downKey(key)
+		if err != nil {
+			return err
+		}
+		time.Sleep(time.Millisecond)
+		err = upKey(key)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("not in map")
+}
+
+func ShiftPress()   { _ = downKey(shift) }
+func ShiftRelease() { _ = upKey(shift) }
+func CtrlPress()    { _ = downKey(ctrl) }
+func CtrlRelease()  { _ = upKey(ctrl) }
+
+const (
+	shift = 0x10
+	ctrl  = 0x11
+	keyUp = 0x0002
+)
 
 var javaScriptToUint16 = map[string]uint16{
 	"Escape": 0x1B,
